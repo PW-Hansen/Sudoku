@@ -27,6 +27,8 @@ WHITE = (255, 255, 255)
 BLACK = (0, 0, 0)
 INPUT_DIGITS = (51, 102, 255)
 BLUE = (179, 224, 255)
+RED = (200, 0, 25)
+GREEN = (25, 255, 64)
 
 FPS = 60
 
@@ -38,19 +40,18 @@ class Frame:
         self.LINE_SIZE = [frame * LINE_BASE for frame in LINE_FRAME]
         self.CELL_SIZE = CELL_SIZE
         self.GRID_START = GRID_START
-        self.TOTAL_GRID_SIZE = 9*CELL_SIZE + sum(LINE_SIZE)
+        self.TOTAL_GRID_SIZE = 9*CELL_SIZE + sum(self.LINE_SIZE)
         self.GRID_END = (self.GRID_START[0] + self.TOTAL_GRID_SIZE,
                          self.GRID_START[0] + self.TOTAL_GRID_SIZE)
         
         self.FRAME_COLOR = FRAME_COLOR
 
         self.lines_create()
-        
         self.corners_create()
         
         self.HIGHLIGHT_COLOR = HIGHLIGHT_COLOR
         self.active_cell = [-1,-1]
-        
+
 
     def lines_create(self):
         self.LINES = []
@@ -68,14 +69,20 @@ class Frame:
             y += self.CELL_SIZE*i + sum(self.LINE_SIZE[:i])
             
             self.LINES.append(pygame.Rect(x,y,self.TOTAL_GRID_SIZE,self.LINE_SIZE[i]))
+
+        self.LINE_STARTS = [line[0] for line in self.LINES[:10]]
             
     def lines_draw(self):
         for line in self.LINES:
             pygame.draw.rect(self.WIN, self.FRAME_COLOR, line)
 
+    def lines_between(self,value):
+        for i,line in zip(reversed(range(9)),reversed(self.LINE_STARTS[:-1])):
+            if value > line:
+                return i
+
     def corners_create(self):
-        LINE_STARTS = [line[0] for line in self.LINES[:10]]
-        LINEAR_CORNERS = [start + thickness for start,thickness in zip(LINE_STARTS,self.LINE_SIZE)]
+        LINEAR_CORNERS = [start + thickness for start,thickness in zip(self.LINE_STARTS,self.LINE_SIZE)]
         
         self.CELL_CORNERS = np.empty((9,9),dtype = tuple)
         for i in range(9):
@@ -126,16 +133,27 @@ class Grid:
             self.grid[i,j] = n
     
     def digits_draw(self):
+        # Checks whether the grid is complete.
+        if self.digits_check_all():
+            self.INPUT_COLOR = GREEN
+        
         # Filling in numbers.    
         for i in range(9):
             for j in range(9):
                 if self.grid[i,j] != 0:
                     if not self.givens[i,j]:
-                        cell_text = CenteredText(str(self.grid[i,j]),
-                                                 self.FRAME.CELL_CORNERS[i,j][0],
-                                                 self.FRAME.CELL_CORNERS[i,j][1],
-                                                 self.CELL_SIZE,self.CELL_SIZE,
-                                                 self.INPUT_COLOR)                
+                        if self.cell_check_n_placed(i,j,self.grid[i,j]):
+                            cell_text = CenteredText(str(self.grid[i,j]),
+                                                     self.FRAME.CELL_CORNERS[i,j][0],
+                                                     self.FRAME.CELL_CORNERS[i,j][1],
+                                                     self.CELL_SIZE,self.CELL_SIZE,
+                                                     self.INPUT_COLOR)   
+                        else:
+                            cell_text = CenteredText(str(self.grid[i,j]),
+                                                     self.FRAME.CELL_CORNERS[i,j][0],
+                                                     self.FRAME.CELL_CORNERS[i,j][1],
+                                                     self.CELL_SIZE,self.CELL_SIZE,
+                                                     RED)                               
                     else:
                         cell_text = CenteredText(str(self.grid[i,j]),
                                                  self.FRAME.CELL_CORNERS[i,j][0],
@@ -144,45 +162,51 @@ class Grid:
                                                  self.GIVEN_COLOR)
                     cell_text.draw(self.WIN)
         
+    def digits_check_all(self):
+        correct = False
+        if self.grid.sum() == 405:
+            correct = True
+            for i in range(9):
+                for j in range(9):
+                    if not self.givens[i,j]:
+                        if not self.cell_check_n_placed(i,j,self.grid[i,j]):
+                            correct = False
+        return correct
+            
+               
+            
+        
+        
+    # Function to get the box a row, column cell belongs to.        
+    def cell_get_box(self, r, c):
+        return self.grid[(r//3)*3:(r//3+1)*3,(c//3)*3:(c//3+1)*3]
+
+
+    # Checks if the digit n can be in cell r,c, where r is row and c is column.
+    def cell_check_n(self, r, c, n, debug=False):
+        if n in self.grid[r,:]:
+            if debug:
+                print(f'{n} in row')
+            return False
+        elif n in self.grid[:,c]:
+            if debug:
+                print(f'{n} in column')
+            return False
+        elif n in self.cell_get_box(r, c):
+            if debug:
+                print(f'{n} in box')
+            return False
+        else:
+            return True
+
+    # Checks whether the digit n in position r,c can see any *other* digit n.
+    def cell_check_n_placed(self,r,c,n):
+        self.grid[r, c] = 0
+        check = self.cell_check_n(r, c, n)
+        self.grid[r, c] = n
+        return check
         
 
-#%%
-LINE_SIZE = [10, 5, 5, 10, 5, 5, 10, 5, 5, 10]
-CELL_SIZE = 50
-
-TOTAL_GRID_SIZE = 9*CELL_SIZE + sum(LINE_SIZE)
-
-GRID_START = (100, 100)
-
-
-# Lines for the grid.
-LINES = []
-
-# First vertical lines.
-for i,line in enumerate(LINE_SIZE):
-    x,y = GRID_START
-    x+= CELL_SIZE*i + sum(LINE_SIZE[:i])
-    
-    LINES.append(pygame.Rect(x,y,LINE_SIZE[i],TOTAL_GRID_SIZE))
-    
-# Then horizontal lines.
-for i,line in enumerate(LINE_SIZE):
-    x,y = GRID_START
-    y+= CELL_SIZE*i + sum(LINE_SIZE[:i])
-    
-    LINES.append(pygame.Rect(x,y,TOTAL_GRID_SIZE,LINE_SIZE[i]))
-
-# Grabbing line starts
-LINE_STARTS = [line[0] for line in LINES[:10]]
-
-# Gets the highest line in LINE_STARTS which the value is lower than.
-def between_lines(value):
-    for i,line in zip(reversed(range(10)),reversed(LINE_STARTS)):
-        if value > line:
-            return i
-
-
-#%% Preparing text.
 # Class shamelessly stolen from the internet.
 class CenteredText(object):
     """ Centered Text Class
@@ -203,28 +227,14 @@ class CenteredText(object):
         rect = pygame.Rect(self.x, self.y, self.w, self.h)
         pygame.draw.rect(screen, (0,0,0), rect, 1)
 
-
 #%%
-# Function to return which cell of the Sudoku is clicked in the format row, column.
-def get_cell_click(coordinates):
-    grid_start  = GRID_START[0] + LINE_SIZE[0]
-    grid_end    = GRID_START[0] + TOTAL_GRID_SIZE
-
-    if grid_start <= coordinates[0] <= grid_end and grid_start <= coordinates[1] <= grid_end:
-        row = between_lines(coordinates[0])
-        col = between_lines(coordinates[1])
-        return row,col
-    
-    else:
-        return False,False
-
 def draw_window(active_cell,frame,grid):
     WIN.fill((WHITE))
     
     frame.highlight_cells()
 
     frame.lines_draw()
-    
+        
     grid.digits_draw()
         
     pygame.display.update()
@@ -233,8 +243,8 @@ def handle_input_sudoku(event, frame, grid):
     if event.type == pygame.MOUSEBUTTONDOWN:
         coor = pygame.mouse.get_pos()
         if frame.GRID_START[0] <= coor[0] <= frame.GRID_END[0] and frame.GRID_START[1] <= coor[1] <= frame.GRID_END[1]:
-            cell_x = between_lines(coor[0])
-            cell_y = between_lines(coor[1])     
+            cell_x = frame.lines_between(coor[0])
+            cell_y = frame.lines_between(coor[1])     
             if frame.active_cell == [cell_x,cell_y]:
                 frame.active_cell = [-1,-1]
             else:
@@ -262,7 +272,20 @@ def handle_input_sudoku(event, frame, grid):
             if event.key == pygame.K_9 or event.key == pygame.K_KP9:
                 grid.grid[x,y] = 9
             if event.key == pygame.K_BACKSPACE or event.key == pygame.K_DELETE:
-                grid.grid[x,y] = 0    
+                grid.grid[x,y] = 0
+        
+        if event.key == pygame.K_UP:
+            if frame.active_cell[1] > 0:
+                frame.active_cell[1] -= 1
+        if event.key == pygame.K_DOWN:
+            if frame.active_cell[1] < 8:
+                frame.active_cell[1] += 1
+        if event.key == pygame.K_LEFT:
+            if frame.active_cell[0] > 0:
+                frame.active_cell[0] -= 1
+        if event.key == pygame.K_RIGHT:
+            if frame.active_cell[0] < 8:
+                frame.active_cell[0] += 1
 
 def main():
     clock = pygame.time.Clock()
