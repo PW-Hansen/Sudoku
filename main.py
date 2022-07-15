@@ -116,7 +116,9 @@ class Grid:
         
         self.INPUT_COLOR = INPUT_COLOR
         self.GIVEN_COLOR = GIVEN_COLOR
-            
+        
+        self.solve_show = False
+                    
     def load_from_file(self, grid_name):
         self.grid = np.genfromtxt(grid_name, dtype = int, delimiter = ',')
         for i in range(self.SIZE):
@@ -132,7 +134,7 @@ class Grid:
         else:
             self.grid[i,j] = n
     
-    def digits_draw(self):
+    def digits_draw(self, tick):
         # Checks whether the grid is complete.
         if self.digits_check_all():
             self.INPUT_COLOR = GREEN
@@ -161,6 +163,15 @@ class Grid:
                                                  self.CELL_SIZE,self.CELL_SIZE,
                                                  self.GIVEN_COLOR)
                     cell_text.draw(self.WIN)
+                    
+        # If backtracking is active, draw in the digits one at a time.
+        if self.solve_show and len(self.backtracking_solution_path) > 0:
+            self.solve_show_counter  += tick
+            if self.solve_show_counter > 200:
+                self.solve_show_counter -= 200
+                x, y, n = self.backtracking_solution_path.pop(0)
+                self.grid[x, y] = n
+
         
     def digits_check_all(self):
         correct = False
@@ -205,7 +216,40 @@ class Grid:
         check = self.cell_check_n(r, c, n)
         self.grid[r, c] = n
         return check
-        
+    
+    def solve_backtracking(self):
+        self.backtracking_path = []
+        self.solve_backtracking_algorithm(self.grid)
+        self.solve_backtracking_get_path()
+        self.solve_show = True
+        self.solve_show_counter = 0        
+    
+    def solve_backtracking_algorithm(self, grid):
+        for r in range(9): # Row
+            for c in range(9): # Column
+                if self.grid[r,c] == 0:
+                    for n in range(1,10):
+                        if self.cell_check_n(r, c, n):
+                            self.backtracking_path.append((r, c, n))
+                            self.grid[r,c] = n
+                            self.solve_backtracking_algorithm(self.grid)
+                            self.backtracking_path.append((r, c, 0))
+                            self.grid[r,c] = 0
+                    return
+        self.backtracking_path.append(np.copy(self.grid))
+
+    def solve_backtracking_get_path(self):
+        self.solutions = []
+        solution_int = int
+        for i,val in enumerate(self.backtracking_path):
+            if len(val) > 3:
+                self.solutions.append(val)
+                solution_int = i
+                
+        if len(self.solutions) == 1:
+            self.backtracking_solution_path = [val for i,val in enumerate(self.backtracking_path) if i < solution_int]
+        else:
+            raise ValueError('Either no or multiple solutions!')
 
 # Class shamelessly stolen from the internet.
 class CenteredText(object):
@@ -228,14 +272,14 @@ class CenteredText(object):
         pygame.draw.rect(screen, (0,0,0), rect, 1)
 
 #%%
-def draw_window(active_cell,frame,grid):
+def draw_window(active_cell, frame, grid, tick):
     WIN.fill((WHITE))
     
     frame.highlight_cells()
 
     frame.lines_draw()
         
-    grid.digits_draw()
+    grid.digits_draw(tick)
         
     pygame.display.update()
 
@@ -286,6 +330,10 @@ def handle_input_sudoku(event, frame, grid):
         if event.key == pygame.K_RIGHT:
             if frame.active_cell[0] < 8:
                 frame.active_cell[0] += 1
+                
+    if event.key == pygame.K_s:
+        grid.solve_backtracking()
+                
 
 def main():
     clock = pygame.time.Clock()
@@ -296,7 +344,7 @@ def main():
     grid = Grid(WIN, frame, 'comicsans', 40, 50, 9, INPUT_DIGITS, BLACK)
     
     grid.load_from_file(grid_name)
-    
+                
     while run:
         clock.tick(FPS)
         for event in pygame.event.get():
@@ -304,7 +352,7 @@ def main():
                 run = False
             handle_input_sudoku(event, frame, grid)
                 
-        draw_window(active_cell,frame,grid)
+        draw_window(active_cell, frame, grid, clock.tick(FPS))
     
     pygame.quit()
     

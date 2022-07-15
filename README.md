@@ -8,13 +8,13 @@ Already implemented:
 * Clean up code a bit, move things into classes.
 * App now checks if the grid is complete (and correct), and if so, changes input digit color to green.
 * Allow navigation of highlighted cell via arrowkeys.
-
-Next stage:
 * Animating the brute-force solution, letting the player see what's happening one step at a time.
 
-Future features:
+Next stage:
 * Create a starting screen.
-* Let the player load from different Sudoku. Possibly also upload their own?
+* Let the player load different Sudoku. Possibly also upload their own?
+
+Future features:
 * Programming an analytical solver, starting with the following Sudoku techniques: naked singles, hidden singles, hidden pairs/triples/quadruples, and X-wings.
 * Rating Sudokus with the analytical solver, based on how many and which techniques it had to use.
 
