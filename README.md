@@ -9,9 +9,9 @@ Already implemented:
 * App now checks if the grid is complete (and correct), and if so, changes input digit color to green.
 * Allow navigation of highlighted cell via arrowkeys.
 * Animating the brute-force solution, letting the player see what's happening one step at a time.
+* Create a starting screen.
 
 Next stage:
-* Create a starting screen.
 * Let the player load different Sudoku. Possibly also upload their own?
 
 Future features:
