@@ -13,6 +13,7 @@ Already implemented:
 
 Next stage:
 * Let the player load different Sudoku. Possibly also upload their own?
+* Add timer.
 
 Future features:
 * Programming an analytical solver, starting with the following Sudoku techniques: naked singles, hidden singles, hidden pairs/triples/quadruples, and X-wings.

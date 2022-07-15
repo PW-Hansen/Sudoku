@@ -30,8 +30,6 @@ BOX_BORDER_RATIO = 2
 DIGIT_FONT_SIZE = 40
 GRID_SIZE = 9
 
-HIGHLIGHT_COOLDOWN = 100
-
 WHITE = (255, 255, 255)
 BLACK = (0, 0, 0)
 INPUT_DIGITS = (51, 102, 255)
@@ -43,12 +41,12 @@ FPS = 60
 
 #%% Getting ready for the grid.
 class Game:
-    def __init__(self,state):
-        self.state = state
+    def __init__(self):
+        self.state = 'start'
         self.time = 0
 
 class Frame:    
-    def __init__(self, WIN, LINE_BASE,CELL_SIZE, GRID_START, FRAME_COLOR, BOX_BORDER_RATIO, HIGHLIGHT_COLOR,HIGHLIGHT_COOLDOWN):
+    def __init__(self, WIN, LINE_BASE,CELL_SIZE, GRID_START, FRAME_COLOR, BOX_BORDER_RATIO, HIGHLIGHT_COLOR):
         self.WIN = WIN
         LINE_FRAME = ([BOX_BORDER_RATIO]+[1]*2)*3 + [BOX_BORDER_RATIO]
         self.LINE_SIZE = [frame * LINE_BASE for frame in LINE_FRAME]
@@ -64,9 +62,7 @@ class Frame:
         self.corners_create()
         
         self.HIGHLIGHT_COLOR = HIGHLIGHT_COLOR
-        self.HIGHLIGHT_COOLDOWN = HIGHLIGHT_COOLDOWN        
         self.active_cell = [-1,-1]
-        self.highlight_last_changed = 0
         
 
 
@@ -328,11 +324,9 @@ def sudoku_handle_input(event, game, frame, grid):
             cell_x = frame.lines_between(coor[0])
             cell_y = frame.lines_between(coor[1])     
             if frame.active_cell == [cell_x,cell_y]:
-                if frame.highlight_last_changed + frame.HIGHLIGHT_COOLDOWN < game.time:
-                    frame.active_cell = [-1,-1]
+                frame.active_cell = [-1,-1]
             else:
                 frame.active_cell = [cell_x, cell_y]
-                frame.highlight_last_changed = game.time 
                 
     if event.type == pygame.KEYDOWN:
         if frame.active_cell != [-1,-1]:
@@ -382,9 +376,9 @@ def main():
     run = True
     active_cell = [-1,-1]
     
-    game = Game('start')
-    frame = Frame(WIN, LINE_BASE, CELL_SIZE, GRID_START, BLACK, BOX_BORDER_RATIO, BLUE, HIGHLIGHT_COOLDOWN)
+    frame = Frame(WIN, LINE_BASE, CELL_SIZE, GRID_START, BLACK, BOX_BORDER_RATIO, BLUE)
     grid = Grid(WIN, frame, 'comicsans', DIGIT_FONT_SIZE, CELL_SIZE, GRID_SIZE, INPUT_DIGITS, BLACK)
+    game = Game()
 
     grid.load_from_file(grid_name)
                 
