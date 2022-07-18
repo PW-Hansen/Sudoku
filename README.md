@@ -10,15 +10,18 @@ Already implemented:
 * Allow navigation of highlighted cell via arrowkeys.
 * Animating the brute-force solution, letting the player see what's happening one step at a time.
 * Create a starting screen.
+* Add timer.
+* Let the player load different Sudoku.
 
 Next stage:
-* Let the player load different Sudoku. Possibly also upload their own?
-* Add timer.
+* Programming an analytical solver, starting with the following Sudoku techniques: naked singles, hidden singles, hidden pairs/triples/quadruples, and X-wings.
 
 Future features:
-* Programming an analytical solver, starting with the following Sudoku techniques: naked singles, hidden singles, hidden pairs/triples/quadruples, and X-wings.
 * Rating Sudokus with the analytical solver, based on how many and which techniques it had to use.
+* More code cleanup.
+* Let player create Sudoku?
 
 Potential stretch
 * Pencilmarks, both corner and center?
 * Multiple cell selection.
+* Highlight seen cells?

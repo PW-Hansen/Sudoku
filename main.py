@@ -13,10 +13,13 @@
 #%%
 import pygame
 import numpy as np
+import time
+import os
+
 pygame.font.init()
 
 
-grid_name = 'grid_1.csv'
+grid_name = 'grid_2.csv'
 
 WIDTH, HEIGHT = 720, 720
 GRID_START = (100,100)
@@ -41,13 +44,44 @@ FPS = 60
 
 #%% Getting ready for the grid.
 class Game:
-    def __init__(self):
+    def __init__(self,WIN, frame, grid):
         self.state = 'start'
-        self.time = 0
+        self.WIN = WIN
+        self.frame = frame
+        self.grid = grid
+        
+    def draw(self):
+        self.draw_timer()
+        
+    def draw_timer(self):
+        text_size = 60
+        
+        game_time = time.time() - self.start_time
+                
+        minutes = game_time // 60
+        minutes_10s = str(int(minutes // 10))
+        minutes_01s = str(int(minutes % 10))
+        
+        seconds = game_time % 60
+        seconds_10s = str(int(seconds // 10))
+        seconds_01s = str(int(seconds % 10))
+        
+        timer_components = [minutes_10s, minutes_01s, ':', seconds_10s, seconds_01s]
+        component_size = [40,40,20,40,40]
+        displacements = [440, 480, 520, 540, 580]
+        
+        
+        for i in range(5): 
+            text = CenteredText(timer_components[i],text_size, displacements[i], 0, component_size[i], 100, color = BLACK)
+            text.draw(self.WIN)
+        
+        
 
 class Frame:    
     def __init__(self, WIN, LINE_BASE,CELL_SIZE, GRID_START, FRAME_COLOR, BOX_BORDER_RATIO, HIGHLIGHT_COLOR):
         self.WIN = WIN
+        self.BOX_BORDER_RATIO = BOX_BORDER_RATIO
+        self.LINE_BASE = LINE_BASE
         LINE_FRAME = ([BOX_BORDER_RATIO]+[1]*2)*3 + [BOX_BORDER_RATIO]
         self.LINE_SIZE = [frame * LINE_BASE for frame in LINE_FRAME]
         self.CELL_SIZE = CELL_SIZE
@@ -68,6 +102,8 @@ class Frame:
 
     def lines_create(self):
         self.LINES = []
+        self.LINES_X = []
+        self.LINES_Y = []
         
         # First vertical lines.
         for i,line in enumerate(self.LINE_SIZE):
@@ -75,6 +111,7 @@ class Frame:
             x += self.CELL_SIZE*i + sum(self.LINE_SIZE[:i])
             
             self.LINES.append(pygame.Rect(x,y,self.LINE_SIZE[i],self.TOTAL_GRID_SIZE))
+            self.LINES_X.append(x + self.LINE_SIZE[i])
             
         # Then horizontal lines.
         for i,line in enumerate(self.LINE_SIZE):
@@ -82,6 +119,7 @@ class Frame:
             y += self.CELL_SIZE*i + sum(self.LINE_SIZE[:i])
             
             self.LINES.append(pygame.Rect(x,y,self.TOTAL_GRID_SIZE,self.LINE_SIZE[i]))
+            self.LINES_Y.append(y + self.LINE_SIZE[i])
 
         self.LINE_STARTS = [line[0] for line in self.LINES[:10]]
             
@@ -94,15 +132,13 @@ class Frame:
             if value > line:
                 return i
 
-    def corners_create(self):
-        LINEAR_CORNERS = [start + thickness for start,thickness in zip(self.LINE_STARTS,self.LINE_SIZE)]
-        
+    def corners_create(self): # Use for lines_between too!
         self.CELL_CORNERS = np.empty((9,9),dtype = tuple)
+        
         for i in range(9):
             for j in range(9):
-                self.CELL_CORNERS[i,j] = (LINEAR_CORNERS[i], 
-                                          LINEAR_CORNERS[j])
-
+                self.CELL_CORNERS[i,j] = (self.LINES_X[i],self.LINES_Y[j])                
+                
     def highlight_cells(self):
         if self.active_cell != [-1,-1]:
             cell_start_x, cell_start_y = self.CELL_CORNERS[tuple(self.active_cell)]
@@ -237,8 +273,9 @@ class Grid:
         self.solve_backtracking_algorithm(self.grid)
         self.solve_backtracking_get_path()
         self.solve_show = True
+        self.solve_digits_per_second = 10
         self.solve_show_counter = 0    
-        self.solve_show_counter_required = 200
+        self.solve_show_counter_required = 100 / self.solve_digits_per_second
     
     def solve_backtracking_algorithm(self, grid):
         for r in range(9): # Row
@@ -264,8 +301,10 @@ class Grid:
                 
         if len(self.solutions) == 1:
             self.backtracking_solution_path = [val for i,val in enumerate(self.backtracking_path) if i < solution_int]
+        elif len(self.solutions) == 0:
+            raise ValueError('The Sudoku has no solutions!')
         else:
-            raise ValueError('Either no or multiple solutions!')
+            raise ValueError('The Sudoku has multiple solutions!')
 
 # Class shamelessly stolen from the internet.
 class CenteredText(object):
@@ -284,8 +323,8 @@ class CenteredText(object):
     def draw(self, screen):
         screen.blit(self.txt, self.coords)
         # for testing purposes, draw the rectangle too
-        rect = pygame.Rect(self.x, self.y, self.w, self.h)
-        pygame.draw.rect(screen, (0,0,0), rect, 1)
+        # rect = pygame.Rect(self.x, self.y, self.w, self.h)
+        # pygame.draw.rect(screen, (0,0,0), rect, 1)
 
 #%%
 def start_draw_window():
@@ -294,7 +333,6 @@ def start_draw_window():
     CenteredText('Peter\'s Sudoku!',80,50,100,620,100,BLACK).draw(WIN)
 
     CenteredText('Play',60,300,250,120,100,BLACK).draw(WIN)
-
     
     pygame.display.update()
     
@@ -302,11 +340,44 @@ def start_handle_input(event,game):
     if event.type == pygame.MOUSEBUTTONDOWN:
         coor = pygame.mouse.get_pos()
         if 300 <= coor[0] <= 420 and 250 <= coor[1] <= 350:
-            game.state = 'play'
+            game.state = 'select'
+            os.chdir('data')    
        
-   
+def select_draw_window(game, tick):
+    WIN.fill((WHITE))
+    
+    CenteredText('Select a sudoku',60,100,0,520,100,BLACK).draw(WIN)
+    
+    sudokus = os.listdir()
+    
+    game.selection_coords = [] * len(sudokus)
 
-def sudoku_draw_window(active_cell, frame, grid, tick):
+    for i,data in enumerate(sudokus):
+        start_coords = (100 + 312*(i % 2), 100 + 312* (int(i/2)))
+        
+        frame = Frame(WIN, int(LINE_BASE*2/5), int(CELL_SIZE*2/5), start_coords, BLACK, BOX_BORDER_RATIO, BLUE)
+        grid = Grid(WIN, frame, 'comicsans', int(DIGIT_FONT_SIZE*2/5), int(CELL_SIZE*2/5), GRID_SIZE, INPUT_DIGITS, BLACK)
+        grid.load_from_file(data)
+
+        frame.lines_draw()
+            
+        grid.digits_draw(tick)
+        
+        game.selection_coords.append(start_coords + frame.GRID_END)
+     
+    pygame.display.update()
+
+def select_handle_input(event,game):
+    if event.type == pygame.MOUSEBUTTONDOWN:
+        coor = pygame.mouse.get_pos()
+        for i,select_choice in enumerate(game.selection_coords):
+            if select_choice[0] <= coor [0] <= select_choice[2] and select_choice[1] <= coor [1] <= select_choice[3]:
+                game.state = 'play'
+                game.start_time = time.time()
+                game.grid.load_from_file(os.listdir()[i])
+
+
+def sudoku_draw_window(active_cell, game, frame, grid, tick):
     WIN.fill((WHITE))
     
     frame.highlight_cells()
@@ -314,6 +385,8 @@ def sudoku_draw_window(active_cell, frame, grid, tick):
     frame.lines_draw()
         
     grid.digits_draw(tick)
+    
+    game.draw()
         
     pygame.display.update()
 
@@ -378,27 +451,28 @@ def main():
     
     frame = Frame(WIN, LINE_BASE, CELL_SIZE, GRID_START, BLACK, BOX_BORDER_RATIO, BLUE)
     grid = Grid(WIN, frame, 'comicsans', DIGIT_FONT_SIZE, CELL_SIZE, GRID_SIZE, INPUT_DIGITS, BLACK)
-    game = Game()
-
-    grid.load_from_file(grid_name)
-                
+    game = Game(WIN, frame, grid)
+    
     while run:
         clock.tick(FPS)
-        game.time += clock.tick(FPS)
+        tick = clock.tick(FPS)
+
+        if game.state == 'start':
+            start_draw_window()
+        elif game.state == 'select':
+            select_draw_window(game, tick)                
+        elif game.state == 'play':
+            sudoku_draw_window(active_cell, game, frame, grid, tick)
+
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 run = False
             if game.state == 'start':
                 start_handle_input(event,game)
+            elif game.state == 'select':
+                select_handle_input(event,game)
             elif game.state == 'play':
-                sudoku_handle_input(event, game, frame, grid)
-                
-        
-        if game.state == 'start':            
-            start_draw_window()
-                
-        elif game.state == 'play':
-            sudoku_draw_window(active_cell, frame, grid, clock.tick(FPS))
+                sudoku_handle_input(event, game, frame, grid)        
     
     pygame.quit()
     
