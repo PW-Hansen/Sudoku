@@ -55,9 +55,10 @@ class Game:
         
     def draw_timer(self):
         text_size = 60
-        
-        game_time = time.time() - self.start_time
                 
+        game_time = time.time() - self.start_time
+        print(game_time)        
+        
         minutes = game_time // 60
         minutes_10s = str(int(minutes // 10))
         minutes_01s = str(int(minutes % 10))

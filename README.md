@@ -12,9 +12,10 @@ Already implemented:
 * Create a starting screen.
 * Add timer.
 * Let the player load different Sudoku.
+* Analytical solver progress: naked singles, hidden singles, pointing pairs.
 
 Next stage:
-* Programming an analytical solver, starting with the following Sudoku techniques: naked singles, hidden singles, hidden pairs/triples/quadruples, and X-wings.
+* Programming an analytical solver, starting with the following Sudoku techniques: hidden pairs/triples/quadruples?, and X-wings (?).
 
 Future features:
 * Rating Sudokus with the analytical solver, based on how many and which techniques it had to use.
